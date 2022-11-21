@@ -16,7 +16,7 @@ import projects.entity.Project;
 import projects.entity.Step;
 import projects.exception.DbException;
 import provided.util.DaoBase;
-
+//Class uses JDBC to perform the CRUD operations on the project tables
 public class ProjectDao extends DaoBase {
 	@SuppressWarnings("unused")
 	private static final String CATEGORY_TABLE = "category";
@@ -28,7 +28,7 @@ public class ProjectDao extends DaoBase {
 	@SuppressWarnings("unused")
 	private static final String STEP_TABLE = "step";
 	
-	
+//Inserts a project row into the project table	
 	public Project insertProject(Project project) {
 
 		//@formatter:off
@@ -67,7 +67,7 @@ public class ProjectDao extends DaoBase {
 		}
 	}
 
-
+//sql String retrieves all projects, all projects printed if successful
 	public List<Project> fetchAllProjects() {
 		String sql = "SELECT * FROM " + PROJECT_TABLE + " ORDER BY project_name";
 		
@@ -92,10 +92,9 @@ public class ProjectDao extends DaoBase {
 			throw new DbException(e);
 		}
 	}
-
-
+//Retrieves all rows, returns Optional of type Project
 	public Optional<Project> fetchProjectById(Integer projectId) {
-String sql = "SELECT * FROM " + PROJECT_TABLE + " WHERE project_id = ?";
+		String sql = "SELECT * FROM " + PROJECT_TABLE + " WHERE project_id = ?";
 		
 		try(Connection conn = DbConnection.getConnection()) {
 			startTransaction(conn);
@@ -131,6 +130,7 @@ String sql = "SELECT * FROM " + PROJECT_TABLE + " WHERE project_id = ?";
 			throw new DbException(e);
 		}
 	}
+
 	private List<Category> fetchCategoriesForProject(Connection conn, Integer projectId) throws SQLException {
 			// @formatter:off
 			String sql = ""
@@ -188,6 +188,69 @@ String sql = "SELECT * FROM " + PROJECT_TABLE + " WHERE project_id = ?";
 				return materials;
 			}
 		}
+	}
+
+	public boolean modifyProjectDetails(Project project) {
+		 // formatted: off
+		String sql = ""
+				+ "UPDATE " + PROJECT_TABLE + " SET "
+				+ "project_name = ?, "
+				+ "estimated_hours = ?, " 
+				+ "actual_hours = ?, "
+                + "difficulty = ?, " 
+				+ "notes = ? "
+				+ " WHERE project_id = ?" ;
+		
+		// formatted: on
+		try(Connection conn = DbConnection.getConnection()){
+			startTransaction(conn);	
+			
+			 try(PreparedStatement stmt = conn.prepareStatement(sql)) {
+				    setParameter(stmt, 1, project.getProjectName(), String.class);
+					setParameter(stmt, 2, project.getEstimatedHours(), BigDecimal.class);
+					setParameter(stmt, 3, project.getActualHours(), BigDecimal.class);
+					setParameter(stmt, 4, project.getDifficulty(), Integer.class);
+					setParameter(stmt, 5, project.getNotes(), String.class); 
+					setParameter(stmt, 6, project.getProjectId(),Integer.class);
+					
+					boolean modified = stmt.executeUpdate() == 1;
+					commitTransaction(conn);
+					
+					return modified;
+			 }
+		
+			 catch(Exception e) {
+					rollbackTransaction(conn);
+					throw new DbException(e);
+			}
+		}
+			catch(SQLException e) {
+				throw new DbException(e);
+				
+			}			
+		}
+
+	public boolean deleteProject(Integer projectId) {
+		String sql = "DELETE FROM " + PROJECT_TABLE + " WHERE project_id = ?";
+		
+		try(Connection conn = DbConnection.getConnection()){
+			startTransaction(conn);
+			
+			 try(PreparedStatement stmt = conn.prepareStatement(sql)) {
+				 setParameter(stmt, 1, projectId, Integer.class); 
+				 boolean deleted = stmt.executeUpdate() == 1;
+				 commitTransaction(conn);
+				 
+				 return deleted;
+			 }
+			 catch(Exception e) {
+					rollbackTransaction(conn);
+					throw new DbException(e);
+			 }
+		}
+		catch(SQLException e) {
+			throw new DbException(e);
+    	}		
 	}
 }
 
